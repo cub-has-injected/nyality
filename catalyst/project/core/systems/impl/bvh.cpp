@@ -437,7 +437,7 @@ namespace systems {
 			}
 		}
 		
-	} // namespace detail
+	}
 
 	void bvh::parse( )
 	{
@@ -544,8 +544,8 @@ namespace systems {
 				continue;
 			}
 
-			const auto femboys = g::memory.read<std::uint32_t>( body + 0x40 );
-			if ( femboys != 2 )
+			const auto body_type = g::memory.read<std::uint32_t>( body + 0x40 );
+			if ( body_type != 2 )
 			{
 				continue;
 			}
@@ -1220,4 +1220,4 @@ namespace systems {
 		return node_idx;
 	}
 
-} // namespace systems
+}

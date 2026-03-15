@@ -144,7 +144,7 @@ namespace features::combat {
 			damage = std::floor( damage_to_health );
 		}
 
-	} // namespace detail
+	}
 
 	void shared::penetration::prepare( std::uintptr_t weapon_vdata, std::uintptr_t weapon )
 	{
@@ -337,6 +337,92 @@ namespace features::combat {
 
 		out = {};
 		return false;
+	}
+
+	bool shared::penetration::can( const math::vector3& start, const math::vector3& direction, float& out_damage ) const
+	{
+		out_damage = 0.0f;
+
+		if ( this->m_weapon_data.damage <= 0.0f )
+		{
+			return false;
+		}
+
+		const auto max_range = this->m_weapon_data.range;
+		const auto ray_end = start + direction * max_range;
+
+		const auto first_hit = systems::g_bvh.trace_ray( start, ray_end );
+		if ( !first_hit.hit )
+		{
+			return false;
+		}
+
+		const auto all_hits = systems::g_bvh.trace_ray_all( start, ray_end );
+		const auto segments = systems::g_bvh.build_segments( all_hits, max_range );
+
+		if ( segments.empty( ) )
+		{
+			if ( first_hit.surface.penetration >= 0.1f && this->m_weapon_data.penetration > 0.0f )
+			{
+				out_damage = this->m_weapon_data.damage;
+				return true;
+			}
+
+			return false;
+		}
+
+		const auto& seg = segments[ 0 ];
+
+		auto pen_mod = seg.min_pen_mod;
+		const auto enter_type = seg.enter_surface.surface_type;
+		const auto exit_type = seg.exit_surface.surface_type;
+
+		if ( enter_type != exit_type )
+		{
+			pen_mod = std::min( pen_mod, seg.exit_surface.penetration );
+		}
+
+		if ( seg.exit_distance > 3000.0f || pen_mod < 0.1f )
+		{
+			return false;
+		}
+
+		auto damage_modifier = 0.16f;
+
+		if ( pen_mod >= 0.1f && enter_type == exit_type )
+		{
+			if ( ( ( enter_type - 85 ) & 0xfffffffd ) == 0 )
+			{
+				pen_mod = 3.0f;
+			}
+			else if ( enter_type == 76 )
+			{
+				pen_mod = 2.0f;
+			}
+
+			if ( seg.thickness < 6.0f )
+			{
+				if ( enter_type == 71 || enter_type == 89 )
+				{
+					damage_modifier = 0.05f;
+					pen_mod = 3.0f;
+				}
+			}
+		}
+
+		const auto inv_pen = 1.0f / pen_mod;
+		const auto base_loss = damage_modifier * this->m_weapon_data.damage;
+		const auto pen_loss = std::max( 0.0f, ( 3.0f / this->m_weapon_data.penetration ) * 1.25f ) * ( inv_pen * 3.0f );
+		const auto dist_loss = ( seg.thickness * seg.thickness * inv_pen ) / 24.0f;
+		const auto remaining = this->m_weapon_data.damage - ( base_loss + pen_loss + dist_loss );
+
+		if ( remaining < 1.0f )
+		{
+			return false;
+		}
+
+		out_damage = remaining;
+		return true;
 	}
 
 	float shared::penetration::get_max_damage( int hitgroup, int target_armor, bool has_helmet, int target_team ) const
@@ -532,8 +618,8 @@ namespace features::combat {
 
 	math::vector2 shared::calculate_spread( int seed, float inaccuracy, float spread, float recoil_index, int item_def_idx, int num_bullets ) const
 	{
-		constexpr std::uint16_t revolver_id{ 64 };
-		constexpr std::uint16_t negev_id{ 28 };
+		constexpr int revolver_id{ 64 };
+		constexpr int negev_id{ 28 };
 		constexpr auto two_pi{ 2.0f * std::numbers::pi_v<float> };
 
 		random::valve_rng rng;
@@ -549,7 +635,7 @@ namespace features::combat {
 		else if ( item_def_idx == negev_id && recoil_index < 3.0f )
 		{
 			auto v = inac_r; auto c = 3;
-			do { --c; v *= v; } while ( static_cast< float >( c ) > recoil_index );
+			do { --c; v *= v; } while ( c > 0 && static_cast< float >( c ) > recoil_index );
 			inac_r = 1.0f - v;
 		}
 
@@ -565,7 +651,7 @@ namespace features::combat {
 		else if ( item_def_idx == negev_id && recoil_index < 3.0f )
 		{
 			auto v = spr_r; auto c = 3;
-			do { --c; v *= v; } while ( static_cast< float >( c ) > recoil_index );
+			do { --c; v *= v; } while ( c > 0 && static_cast< float >( c ) > recoil_index );
 			spr_r = 1.0f - v;
 		}
 
@@ -809,7 +895,7 @@ namespace features::combat {
 
 		const auto ping = g::memory.read<std::int32_t>( controller + SCHEMA( "CCSPlayerController", "m_iPing"_hash ) );
 		const auto latency = static_cast< float >( ping ) * 0.001f;
-		const auto interp_time = g::memory.read<float>( pawn + 0x290 ); // client @ 48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 63 D8 48 8B F1
+		const auto interp_time = g::memory.read<float>( pawn + 0x290 );
 
 		return latency * 0.5f + interp_time;
 	}
@@ -900,4 +986,4 @@ namespace features::combat {
 		return std::fminf( 1.0f, inaccuracy );
 	}
 
-} // namespace features::combat
+}

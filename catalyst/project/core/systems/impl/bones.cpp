@@ -55,4 +55,4 @@ namespace systems {
 		return result;
 	}
 
-} // namespace systems
+}

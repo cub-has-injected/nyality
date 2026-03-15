@@ -61,4 +61,4 @@ namespace systems {
 	template bool convars::get<bool>( std::uintptr_t );
 	template std::uint8_t convars::get<std::uint8_t>( std::uintptr_t );
 
-} // namespace systems
+}

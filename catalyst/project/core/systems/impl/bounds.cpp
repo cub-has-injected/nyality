@@ -61,4 +61,4 @@ namespace systems {
 		return { screen_min, screen_max };
 	}
 
-} // namespace systems
+}

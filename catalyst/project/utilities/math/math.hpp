@@ -114,4 +114,4 @@ namespace math {
 		[[nodiscard]] static math::vector3 rotate_by_quat( const math::quaternion& q, const math::vector3& v );
 	};
 
-} // namespace math
+}

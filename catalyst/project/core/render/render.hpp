@@ -37,5 +37,6 @@ private:
 
 	loaded_fonts m_fonts{};
 
-	static constexpr const wchar_t* k_class_name{ L"catalyst.overlay" };
+	wchar_t m_class_name[ 32 ]{};
+	void generate_class_name( );
 };

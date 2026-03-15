@@ -131,7 +131,7 @@ namespace detail {
 		return result;
 	}
 
-} // namespace detail
+}
 
 bool memory::initialize( std::wstring_view process_name )
 {
@@ -193,6 +193,17 @@ bool memory::read( std::uintptr_t address, void* buffer, std::size_t size ) cons
 
 	std::size_t bytes{ 0 };
 	return ::ReadProcessMemory( this->m_handle, reinterpret_cast< const void* >( address ), buffer, size, &bytes ) && bytes == size;
+}
+
+bool memory::write( std::uintptr_t address, const void* buffer, std::size_t size ) const
+{
+	if ( !this->m_handle || !buffer || !size ) [[unlikely]]
+	{
+		return false;
+	}
+
+	std::size_t bytes{ 0 };
+	return ::WriteProcessMemory( this->m_handle, reinterpret_cast< void* >( address ), buffer, size, &bytes ) && bytes == size;
 }
 
 std::uintptr_t memory::get_module( std::string_view name ) const

@@ -1,7 +1,20 @@
 #include <stdafx.hpp>
 
+void render::generate_class_name( )
+{
+	std::mt19937 rng( static_cast< std::uint32_t >( __rdtsc( ) ) );
+	std::uniform_int_distribution<int> dist( 'a', 'z' );
+
+	for ( int i = 0; i < 12; ++i )
+		this->m_class_name[ i ] = static_cast< wchar_t >( dist( rng ) );
+
+	this->m_class_name[ 12 ] = L'\0';
+}
+
 bool render::initialize( )
 {
+	this->generate_class_name( );
+
 	if ( !this->register_window_class( ) )
 	{
 		return false;
@@ -10,7 +23,7 @@ bool render::initialize( )
 	const auto screen_w = ::GetSystemMetrics( SM_CXSCREEN );
 	const auto screen_h = ::GetSystemMetrics( SM_CYSCREEN );
 
-	this->m_hwnd = ::CreateWindowExW( WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE, k_class_name, k_class_name, WS_POPUP, 0, 0, screen_w, screen_h, nullptr, nullptr, ::GetModuleHandleW( nullptr ), nullptr );
+	this->m_hwnd = ::CreateWindowExW( WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE, this->m_class_name, this->m_class_name, WS_POPUP, 0, 0, screen_w, screen_h, nullptr, nullptr, ::GetModuleHandleW( nullptr ), nullptr );
 	if ( !this->m_hwnd )
 	{
 		return false;
@@ -37,7 +50,7 @@ bool render::initialize( )
 bool render::register_window_class( )
 {
 	WNDCLASSEXW wc{};
-	if ( ::GetClassInfoExW( ::GetModuleHandleW( nullptr ), k_class_name, &wc ) )
+	if ( ::GetClassInfoExW( ::GetModuleHandleW( nullptr ), this->m_class_name, &wc ) )
 	{
 		return true;
 	}
@@ -48,7 +61,7 @@ bool render::register_window_class( )
 	wc.hInstance = ::GetModuleHandleW( nullptr );
 	wc.hbrBackground = static_cast< HBRUSH >( ::GetStockObject( BLACK_BRUSH ) );
 	wc.hCursor = ::LoadCursorW( nullptr, IDC_ARROW );
-	wc.lpszClassName = k_class_name;
+	wc.lpszClassName = this->m_class_name;
 
 	this->m_atom = ::RegisterClassExW( &wc );
 	return this->m_atom != 0;
@@ -58,6 +71,10 @@ void render::run( )
 {
 	constexpr float clear[ 4 ]{ 0.0f, 0.0f, 0.0f, 0.0f };
 	MSG msg{};
+
+	HWND cs2_hwnd{};
+	HWND console_hwnd = ::GetConsoleWindow( );
+	bool last_anti_ss{ false };
 
 	while ( true )
 	{
@@ -72,6 +89,28 @@ void render::run( )
 			::DispatchMessageW( &msg );
 		}
 
+		if ( !cs2_hwnd )
+		{
+			cs2_hwnd = ::FindWindowA( nullptr, "Counter-Strike 2" );
+		}
+
+		const auto anti_ss = settings::g_misc.anti_screenshare;
+		if ( anti_ss != last_anti_ss )
+		{
+			const DWORD affinity = anti_ss ? WDA_EXCLUDEFROMCAPTURE : WDA_NONE;
+			::SetWindowDisplayAffinity( this->m_hwnd, affinity );
+
+			if ( console_hwnd )
+			{
+				::ShowWindow( console_hwnd, anti_ss ? SW_HIDE : SW_SHOW );
+			}
+
+			last_anti_ss = anti_ss;
+		}
+
+		const auto fg = ::GetForegroundWindow( );
+		const auto game_focused = ( fg == cs2_hwnd || fg == this->m_hwnd );
+
 		this->update_input_window( );
 
 		this->m_context->OMSetRenderTargets( 1, &this->m_rtv, nullptr );
@@ -79,17 +118,39 @@ void render::run( )
 
 		zdraw::begin_frame( );
 		{
-			if ( systems::g_local.valid( ) )
+			{
+				auto& s = zui::get_style( );
+				const auto& c = settings::g_misc.accent_color;
+				s.accent = c;
+				s.checkbox_check = c;
+				s.slider_fill = zdraw::rgba{ static_cast< std::uint8_t >( c.r * 0.88f ), static_cast< std::uint8_t >( c.g * 0.92f ), static_cast< std::uint8_t >( c.b * 0.94f ), c.a };
+				s.slider_grab = c;
+				s.slider_grab_active = zdraw::rgba{ static_cast< std::uint8_t >( std::min( c.r + 25, 255 ) ), static_cast< std::uint8_t >( std::min( c.g + 20, 255 ) ), static_cast< std::uint8_t >( std::min( c.b + 10, 255 ) ), c.a };
+				s.keybind_waiting = c;
+				s.combo_item_selected = zdraw::rgba{ c.r, c.g, c.b, 35 };
+			}
+
+			if ( game_focused && systems::g_local.valid( ) )
 			{
 				systems::g_view.update( );
 				features::esp::g_player.on_render( );
 				features::esp::g_item.on_render( );
 				features::esp::g_projectile.on_render( );
 				features::misc::g_grenades.on_render( );
+				features::misc::g_crosshair.on_render( );
+				features::indicators::g_display.on_render( );
 				features::combat::g_legit.on_render( );
 			}
 
-			g::menu.draw( );
+			if ( game_focused )
+			{
+				features::misc::g_watermark.on_render( );
+			}
+
+			if ( game_focused )
+			{
+				g::menu.draw( );
+			}
 		}
 		zdraw::end_frame( );
 
@@ -106,11 +167,12 @@ void render::update_input_window( )
 
 	if ( g::menu.is_open( ) )
 	{
-		::SetWindowLongW( this->m_hwnd, GWL_EXSTYLE, style & ~WS_EX_TRANSPARENT );
+		::SetWindowLongW( this->m_hwnd, GWL_EXSTYLE, ( style & ~WS_EX_TRANSPARENT ) & ~WS_EX_NOACTIVATE );
+		::SetForegroundWindow( this->m_hwnd );
 	}
 	else
 	{
-		::SetWindowLongW( this->m_hwnd, GWL_EXSTYLE, style | WS_EX_TRANSPARENT );
+		::SetWindowLongW( this->m_hwnd, GWL_EXSTYLE, ( style | WS_EX_TRANSPARENT ) | WS_EX_NOACTIVATE );
 	}
 }
 

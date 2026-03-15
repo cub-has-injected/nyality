@@ -78,8 +78,6 @@ namespace animation {
 		this->m_y.reset( );
 	}
 
-	// -------------------------------- //
-
 	void spring::set_target( float target )
 	{
 		this->m_target = target;
@@ -138,8 +136,6 @@ namespace animation {
 		this->m_y.snap( y );
 	}
 
-	// -------------------------------- //
-
 	void progress::set( float target, float duration )
 	{
 		this->m_tween.start( this->m_tween.value( ), target, duration, easing::ease_out );
@@ -150,8 +146,6 @@ namespace animation {
 	{
 		this->m_tween.update( );
 	}
-
-	// -------------------------------- //
 
 	void fade::fade_in( float duration )
 	{
@@ -170,4 +164,4 @@ namespace animation {
 		this->m_tween.update( );
 	}
 
-} // namespace animation
+}

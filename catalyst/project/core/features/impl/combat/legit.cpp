@@ -16,6 +16,11 @@ namespace features::combat {
 		const auto valid_weapon = cstypes::is_weapon_valid( ctx.weapon_type );
 		const auto& cfg = settings::g_combat.get( ctx.weapon_type );
 
+		if ( valid_weapon && cfg.other.penetration_crosshair )
+		{
+			this->draw_penetration_crosshair( eye_pos, view_angles, cfg );
+		}
+
 		this->m_fov_alpha.set_target( valid_weapon && cfg.aimbot.draw_fov && cfg.aimbot.enabled ? 1.0f : 0.0f );
 		this->m_fov_alpha.update( );
 
@@ -70,13 +75,13 @@ namespace features::combat {
 				const auto target = this->select_target( eye_pos, view_angles, players, cfg );
 				if ( target.player )
 				{
-					this->aimbot( eye_pos, view_angles, target, cfg.aimbot );
+					this->aimbot( eye_pos, view_angles, target, cfg.aimbot, cfg.humanization );
 				}
 			}
 
 			if ( cfg.triggerbot.enabled )
 			{
-				this->triggerbot( eye_pos, view_angles, players, cfg.triggerbot );
+				this->triggerbot( eye_pos, view_angles, players, cfg.triggerbot, cfg.humanization );
 			}
 		}
 	}
@@ -144,12 +149,11 @@ namespace features::combat {
 			}
 
 			if ( cfg.aimbot.head_only && hb.index > 1 )
-			{
 				continue;
-			}
+
+			const auto hitgroup = systems::g_hitboxes.hitgroup_from_hitbox( hb.index );
 
 			const auto pos = bones.get_position( hb.bone );
-			const auto hitgroup = systems::g_hitboxes.hitgroup_from_hitbox( hb.index );
 
 			if ( !cfg.aimbot.visible_only )
 			{
@@ -224,6 +228,74 @@ namespace features::combat {
 		return std::sqrtf( dx * dx + dy * dy );
 	}
 
+	void legit::draw_penetration_crosshair( const math::vector3& eye_pos, const math::vector3& view_angles, const settings::combat::group_config& cfg )
+	{
+		math::vector3 forward{};
+		view_angles.to_directions( &forward, nullptr, nullptr );
+
+		const auto first_hit = systems::g_bvh.trace_ray( eye_pos, eye_pos + forward * g_shared.pen( ).get_weapon_data( ).range );
+		if ( !first_hit.hit )
+		{
+			return;
+		}
+
+		auto pen_damage{ 0.0f };
+		const auto can_pen = g_shared.pen( ).can( eye_pos, forward, pen_damage );
+
+		const auto& n = first_hit.normal;
+		const auto ref = ( std::abs( n.z ) < 0.9f ) ? math::vector3{ 0.0f, 0.0f, 1.0f } : math::vector3{ 1.0f, 0.0f, 0.0f };
+
+		const auto d = ref.dot( n );
+		const auto tangent = ( ref - n * d ).normalized( );
+		const auto bitangent = n.cross( tangent );
+
+		const auto center = first_hit.end_pos + n * 0.05f;
+		constexpr auto half_size{ 3.5f };
+
+		const math::vector3 corners[ 4 ]
+		{
+			center - tangent * half_size - bitangent * half_size,
+			center + tangent * half_size - bitangent * half_size,
+			center + tangent * half_size + bitangent * half_size,
+			center - tangent * half_size + bitangent * half_size,
+		};
+
+		float sx[ 5 ]{}, sy[ 5 ]{};
+
+		for ( int i = 0; i < 4; ++i )
+		{
+			const auto proj = systems::g_view.project( corners[ i ] );
+			if ( !systems::g_view.projection_valid( proj ) )
+			{
+				return;
+			}
+
+			sx[ i ] = proj.x;
+			sy[ i ] = proj.y;
+		}
+
+		const auto center_proj = systems::g_view.project( center );
+		if ( !systems::g_view.projection_valid( center_proj ) )
+		{
+			return;
+		}
+
+		sx[ 4 ] = center_proj.x;
+		sy[ 4 ] = center_proj.y;
+
+		const auto& color = can_pen ? cfg.other.penetration_color_yes : cfg.other.penetration_color_no;
+		const auto edge = zdraw::rgba{ color.r, color.g, color.b, static_cast< std::uint8_t >( color.a / 4 ) };
+
+		for ( int i = 0; i < 4; ++i )
+		{
+			const auto j = ( i + 1 ) % 4;
+			zdraw::triangle_filled_multi_color( sx[ 4 ], sy[ 4 ], sx[ i ], sy[ i ], sx[ j ], sy[ j ], color, edge, edge );
+		}
+
+		float screen[ 8 ]{ sx[ 0 ], sy[ 0 ], sx[ 1 ], sy[ 1 ], sx[ 2 ], sy[ 2 ], sx[ 3 ], sy[ 3 ] };
+		zdraw::polyline( screen, { color.r, color.g, color.b, 255 }, true, 1.0f );
+	}
+
 	void legit::draw_fov( const math::vector3& eye_pos, const math::vector3& view_angles, const settings::combat::aimbot& cfg )
 	{
 		const auto target_radius = this->get_fov_radius( eye_pos, view_angles, static_cast< float >( cfg.fov ) );
@@ -236,12 +308,12 @@ namespace features::combat {
 		}
 
 		const auto [w, h] = zdraw::get_display_size( );
-		const auto color = zdraw::rgba{ cfg.fov_color.r, cfg.fov_color.g, cfg.fov_color.b, static_cast< std::uint8_t >( alpha * 125.0f ) };
+		const auto color = zdraw::rgba{ cfg.fov_color.r, cfg.fov_color.g, cfg.fov_color.b, static_cast< std::uint8_t >( alpha * cfg.fov_color.a ) };
 
 		zdraw::circle( w * 0.5f, h * 0.5f, radius, color, 16 );
 	}
 
-	void legit::aimbot( const math::vector3& eye_pos, const math::vector3& view_angles, const target& tgt, const settings::combat::aimbot& cfg )
+	void legit::aimbot( const math::vector3& eye_pos, const math::vector3& view_angles, const target& tgt, const settings::combat::aimbot& cfg, int humanization )
 	{
 		if ( !( GetAsyncKeyState( cfg.key ) & 0x8000 ) )
 		{
@@ -278,6 +350,13 @@ namespace features::combat {
 		auto desired = math::helpers::calculate_angle( eye_pos, aim_point );
 		auto delta_x = desired.x - view_angles.x;
 		auto delta_y = math::helpers::normalize_yaw( desired.y - view_angles.y );
+
+		if ( humanization > 0 )
+		{
+			const auto jitter = static_cast< float >( humanization ) * 0.015f;
+			delta_x += this->m_rng.random_float( -jitter, jitter );
+			delta_y += this->m_rng.random_float( -jitter, jitter );
+		}
 
 		if ( cfg.smoothing > 1 )
 		{
@@ -424,7 +503,7 @@ namespace features::combat {
 		return result;
 	}
 
-	void legit::triggerbot( const math::vector3& eye_pos, const math::vector3& view_angles, const std::vector<systems::collector::player>& players, const settings::combat::triggerbot& cfg )
+	void legit::triggerbot( const math::vector3& eye_pos, const math::vector3& view_angles, const std::vector<systems::collector::player>& players, const settings::combat::triggerbot& cfg, int humanization )
 	{
 		if ( this->m_trigger_held )
 		{
@@ -516,7 +595,12 @@ namespace features::combat {
 		if ( !this->m_trigger_waiting )
 		{
 			this->m_trigger_waiting = true;
-			this->m_trigger_delay_end = now + static_cast< float >( cfg.delay ) * 0.001f;
+			auto delay_ms = static_cast< float >( cfg.delay );
+			if ( humanization > 0 )
+			{
+				delay_ms += this->m_rng.random_float( 0.0f, static_cast< float >( humanization ) * 0.5f );
+			}
+			this->m_trigger_delay_end = now + delay_ms * 0.001f;
 			return;
 		}
 
@@ -623,4 +707,4 @@ namespace features::combat {
 		this->m_autostop_active = false;
 	}
 
-} // namespace features::combat
+}

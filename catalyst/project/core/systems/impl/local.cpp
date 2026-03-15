@@ -141,4 +141,4 @@ namespace systems {
 		this->m_weapon_type.store( 0 );
 	}
 
-} // namespace systems
+}

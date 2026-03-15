@@ -184,4 +184,4 @@ namespace systems {
 		return byte0 ^ 9 ^ byte1 ^ byte2;
 	}
 
-} // namespace systems
+}

@@ -41,8 +41,8 @@ namespace detail {
 		return result;
 	}
 
-	static constexpr rgb k_accent_light{ 140, 150, 235 };
-	static constexpr rgb k_accent_dark{ 75, 80, 180 };
+	static constexpr rgb k_accent_light{ 130, 190, 235 };
+	static constexpr rgb k_accent_dark{ 60, 120, 190 };
 
 	static constexpr rgb k_error_light{ 255, 130, 120 };
 	static constexpr rgb k_error_dark{ 180, 40, 40 };
@@ -53,7 +53,7 @@ namespace detail {
 	static constexpr rgb k_success_light{ 120, 230, 160 };
 	static constexpr rgb k_success_dark{ 45, 160, 90 };
 
-} // namespace detail
+}
 
 bool console::initialize( std::string_view title )
 {
@@ -151,7 +151,7 @@ void console::emit( level lvl, const std::string& message ) const
 		break;
 	}
 
-	const auto label = detail::gradient_text( "catalyst", grad_from, grad_to );
+	const auto label = detail::gradient_text( "nyality", grad_from, grad_to );
 	const auto bracket_col = std::format( "\033[38;2;{};{};{}m", bracket.r, bracket.g, bracket.b );
 	const auto body_col = std::format( "\033[38;2;{};{};{}m", body.r, body.g, body.b );
 

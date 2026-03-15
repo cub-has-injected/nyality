@@ -2,7 +2,6 @@
 
 bool offsets::initialize( )
 {
-	// csgo_input
 	{
 		const auto initial = g::memory.find_pattern( g::modules.client, "48 89 05 ? ? ? ? 0F 57 C0 0F 11 05" );
 		if ( !initial )
@@ -17,7 +16,6 @@ bool offsets::initialize( )
 		}
 	}
 
-	// entity_list
 	{
 		const auto initial = g::memory.find_pattern( g::modules.client, "48 89 35 ? ? ? ? 48 85 F6" );
 		if ( !initial )
@@ -32,7 +30,6 @@ bool offsets::initialize( )
 		}
 	}
 
-	// local_player_controller
 	{
 		const auto initial = g::memory.find_pattern( g::modules.client, "48 8B 05 ? ? ? ? 41 89 BE" );
 		if ( !initial )
@@ -47,7 +44,6 @@ bool offsets::initialize( )
 		}
 	}
 
-	// global_vars
 	{
 		const auto initial = g::memory.find_pattern( g::modules.client, "48 89 15 ? ? ? ? 48 89 42" );
 		if ( !initial )
@@ -62,7 +58,6 @@ bool offsets::initialize( )
 		}
 	}
 
-	// view_matrix
 	{
 		const auto initial = g::memory.find_pattern( g::modules.client, "C6 86 F0 12 00 00 01 48 8D 0D ? ? ? ?" );
 		if ( !initial )

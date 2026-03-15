@@ -4,5 +4,6 @@ namespace threads {
 
 	void game( );
 	void combat( );
+	void movement( );
 
-} // namespace threads
+}

@@ -82,7 +82,7 @@ namespace random {
 		{
 			this->m_state[ 0 ] = 0x67452301;
 			this->m_state[ 1 ] = 0xefcdaB89;
-			this->m_state[ 2 ] = 0x98bedcfe;
+			this->m_state[ 2 ] = 0x98badcfe;
 			this->m_state[ 3 ] = 0x10325476;
 			this->m_state[ 4 ] = 0xc3d2e1f0;
 			this->m_count = 0;
@@ -233,4 +233,4 @@ namespace random {
 		std::uint8_t m_digest[ 20 ]{};
 	};
 
-} // namespace random
+}

@@ -420,7 +420,7 @@ namespace systems {
 	inline collector g_collector{};
 	inline bvh g_bvh{};
 
-} // namespace systems
+}
 
 #define SCHEMA( class_name, field_hash ) \
 	[]( ) -> std::int32_t { \

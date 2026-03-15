@@ -102,6 +102,21 @@
     <ClCompile Include="project\core\features\impl\misc\grenades.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="project\core\features\impl\misc\movement.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="project\core\features\impl\misc\crosshair.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="project\core\features\impl\indicators\indicators.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="project\core\features\impl\misc\watermark.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="project\core\config\config.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="project\core\menu\menu.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -741,4 +741,4 @@ namespace features::esp {
 		return it != icons.end( ) ? it->second : "?";
 	}
 
-} // namespace features::esp
+}

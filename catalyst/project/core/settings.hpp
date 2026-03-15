@@ -7,7 +7,7 @@ namespace settings {
 		struct aimbot
 		{
 			bool enabled{ true };
-			int key{ VK_XBUTTON2 };
+			int key{ VK_XBUTTON1 };
 			int type{ 0 };
 
 			int fov{ 5 };
@@ -28,7 +28,7 @@ namespace settings {
 		struct triggerbot
 		{
 			bool enabled{ true };
-			int key{ VK_XBUTTON2 };
+			int key{ VK_XBUTTON1 };
 
 			float hitchance{ 75.0f };
 			int delay{ 10 };
@@ -42,10 +42,20 @@ namespace settings {
 			bool predictive{ true };
 		};
 
+		struct other
+		{
+			bool penetration_crosshair{ true };
+
+			zdraw::rgba penetration_color_yes{ 50, 255, 50, 125 };
+			zdraw::rgba penetration_color_no{ 255, 50, 50, 125 };
+		};
+
 		struct group_config
 		{
 			aimbot aimbot{};
 			triggerbot triggerbot{};
+			other other{};
+			int humanization{ 0 };
 		};
 
 		static constexpr std::uint32_t k_group_count{ 6 };
@@ -81,7 +91,7 @@ namespace settings {
 				bool outline{ true };
 				float corner_length{ 10.0f };
 
-				zdraw::rgba visible_color{ 140, 150, 235, 255 };
+				zdraw::rgba visible_color{ 130, 190, 235, 255 };
 				zdraw::rgba occluded_color{ 110, 115, 170, 180 };
 			} m_box{};
 
@@ -115,8 +125,8 @@ namespace settings {
 				bool gradient{ true };
 				bool show_value{ true };
 
-				zdraw::rgba full_color{ 140, 150, 235, 255 };
-				zdraw::rgba low_color{ 75, 80, 180, 255 };
+				zdraw::rgba full_color{ 130, 190, 235, 255 };
+				zdraw::rgba low_color{ 60, 120, 190, 255 };
 				zdraw::rgba background_color{ 15, 16, 22, 150 };
 				zdraw::rgba outline_color{ 15, 16, 22, 255 };
 				zdraw::rgba text_color{ 195, 200, 215, 255 };
@@ -132,8 +142,8 @@ namespace settings {
 				bool gradient{ true };
 				bool show_value{ false };
 
-				zdraw::rgba full_color{ 140, 150, 235, 255 };
-				zdraw::rgba low_color{ 75, 80, 180, 255 };
+				zdraw::rgba full_color{ 130, 190, 235, 255 };
+				zdraw::rgba low_color{ 60, 120, 190, 255 };
 				zdraw::rgba background_color{ 15, 16, 22, 150 };
 				zdraw::rgba outline_color{ 15, 16, 22, 255 };
 				zdraw::rgba text_color{ 195, 200, 215, 255 };
@@ -159,9 +169,9 @@ namespace settings {
 
 				zdraw::rgba money_color{ 120, 230, 160, 255 };
 				zdraw::rgba armor_color{ 195, 200, 215, 255 };
-				zdraw::rgba kit_color{ 140, 150, 235, 255 };
+				zdraw::rgba kit_color{ 130, 190, 235, 255 };
 				zdraw::rgba scoped_color{ 195, 200, 215, 255 };
-				zdraw::rgba defusing_color{ 140, 150, 235, 255 };
+				zdraw::rgba defusing_color{ 130, 190, 235, 255 };
 				zdraw::rgba flashed_color{ 255, 210, 120, 255 };
 				zdraw::rgba distance_color{ 90, 95, 130, 255 };
 
@@ -206,7 +216,7 @@ namespace settings {
 			struct ammo
 			{
 				bool enabled{ true };
-				zdraw::rgba color{ 140, 150, 235, 200 };
+				zdraw::rgba color{ 130, 190, 235, 200 };
 				zdraw::rgba empty_color{ 180, 80, 80, 200 };
 			} m_ammo{};
 
@@ -239,7 +249,7 @@ namespace settings {
 			zdraw::rgba color_molotov{ 220, 170, 130, 220 };
 			zdraw::rgba color_decoy{ 170, 175, 200, 200 };
 
-			zdraw::rgba timer_high_color{ 140, 150, 235, 255 };
+			zdraw::rgba timer_high_color{ 130, 190, 235, 255 };
 			zdraw::rgba timer_low_color{ 220, 100, 100, 255 };
 			zdraw::rgba bar_background{ 15, 16, 22, 150 };
 		} m_projectile{};
@@ -259,7 +269,7 @@ namespace settings {
 			zdraw::rgba bounce_color{ 195, 200, 215, 255 };
 			float bounce_size{ 2.0f };
 
-			zdraw::rgba detonate_color{ 140, 150, 235, 255 };
+			zdraw::rgba detonate_color{ 130, 190, 235, 255 };
 			float detonate_size{ 4.0f };
 
 			bool per_type_colors{ false };
@@ -272,10 +282,67 @@ namespace settings {
 			bool local_only{ true };
 			float fade_duration{ 0.3f };
 		} m_grenades{};
+
+		struct movement
+		{
+			bool bhop_enabled{ false };
+			int bhop_key{ VK_SPACE };
+			bool quick_stop{ false };
+		} m_movement{};
+
+		struct crosshair
+		{
+			bool enabled{ true };
+			bool sniper_only{ false };
+			int size{ 4 };
+			int gap{ 2 };
+			int thickness{ 1 };
+			zdraw::rgba color{ 255, 255, 255, 255 };
+
+			bool hitmarker{ true };
+			zdraw::rgba hitmarker_color{ 255, 255, 255, 255 };
+			int hitmarker_size{ 6 };
+			int hitmarker_thickness{ 1 };
+			float hitmarker_duration{ 0.4f };
+		} m_crosshair{};
+
+		struct appearance
+		{
+			bool scale_animation{ true };
+			float animation_speed{ 8.0f };
+		} m_appearance{};
+
+		zdraw::rgba accent_color{ 130, 190, 235, 255 };
+		bool anti_screenshare{ false };
+		bool close_cs_menu{ true };
+
+		struct watermark
+		{
+			bool enabled{ true };
+			int style{ 0 };
+			bool show_fps{ true };
+			float x{ 10.0f };
+			float y{ 10.0f };
+			char custom_text[ 64 ]{ 'n', 'y', 'a', 'l', 'i', 't', 'y', '\0' };
+		} m_watermark{};
+
+		struct indicators
+		{
+			bool keys_enabled{ false };
+			bool show_speed{ true };
+			int keys_size{ 22 };
+			float keys_x{ 0.0f };
+			float keys_y{ 0.0f };
+			zdraw::rgba key_color{ 195, 200, 215, 255 };
+			zdraw::rgba key_color_active{ 130, 190, 235, 255 };
+		} m_indicators{};
+
+		float menu_w{ 680.0f };
+		float menu_h{ 855.0f };
 	};
 
 	inline combat g_combat{};
 	inline esp g_esp{};
 	inline misc g_misc{};
 
-} // namespace settings
+}

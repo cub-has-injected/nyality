@@ -156,6 +156,38 @@ namespace
 				return true;
 			}
 
+			case WM_MBUTTONDOWN:
+			{
+				this->m_current.push_key_press( VK_MBUTTON );
+				this->m_current.key_down_map[ VK_MBUTTON ] = true;
+				return true;
+			}
+
+			case WM_MBUTTONUP:
+			{
+				this->m_current.push_key_release( VK_MBUTTON );
+				this->m_current.key_down_map[ VK_MBUTTON ] = false;
+				return true;
+			}
+
+			case WM_XBUTTONDOWN:
+			{
+				const auto btn = GET_XBUTTON_WPARAM( wparam );
+				const auto vk = ( btn == XBUTTON1 ) ? VK_XBUTTON1 : VK_XBUTTON2;
+				this->m_current.push_key_press( vk );
+				this->m_current.key_down_map[ vk ] = true;
+				return true;
+			}
+
+			case WM_XBUTTONUP:
+			{
+				const auto btn = GET_XBUTTON_WPARAM( wparam );
+				const auto vk = ( btn == XBUTTON1 ) ? VK_XBUTTON1 : VK_XBUTTON2;
+				this->m_current.push_key_release( vk );
+				this->m_current.key_down_map[ vk ] = false;
+				return true;
+			}
+
 			case WM_MOUSEWHEEL:
 			{
 				const auto delta = GET_WHEEL_DELTA_WPARAM( wparam ) / static_cast< float >( WHEEL_DELTA );

@@ -26,7 +26,7 @@ namespace threads {
 					const auto map_ptr = g::memory.read<std::uintptr_t>( global_vars + 0x188 );
 					const auto current_map = map_ptr ? g::memory.read_string( map_ptr ) : std::string{};
 
-					if ( !current_map.empty( ) && current_map != "<empty>" && current_map != last_map ) 
+					if ( !current_map.empty( ) && current_map != "<empty>" && current_map != last_map )
 					{
 						g::console.print( "map change: {} -> {}", last_map.empty( ) ? "none" : last_map, current_map );
 						last_map = current_map;
@@ -84,4 +84,17 @@ namespace threads {
 		}
 	}
 
-} // namespace threads
+	void movement( )
+	{
+		while ( true )
+		{
+			if ( systems::g_local.valid( ) )
+			{
+				features::misc::g_movement.tick( );
+			}
+
+			std::this_thread::sleep_for( std::chrono::milliseconds( 1 ) );
+		}
+	}
+
+}

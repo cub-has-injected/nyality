@@ -601,4 +601,4 @@ namespace features::misc {
 		}
 	}
 
-} // namespace features::misc
+}

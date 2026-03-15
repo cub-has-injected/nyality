@@ -29,8 +29,9 @@ namespace features {
 			[[nodiscard]] float get_fov( const math::vector3& view_angles, const math::vector3& eye_pos, const math::vector3& target_pos ) const;
 			[[nodiscard]] float get_fov_radius( const math::vector3& eye_pos, const math::vector3& view_angles, float fov_degrees ) const;
 
+			void draw_penetration_crosshair( const math::vector3& eye_pos, const math::vector3& view_angles, const settings::combat::group_config& cfg );
 			void draw_fov( const math::vector3& eye_pos, const math::vector3& view_angles, const settings::combat::aimbot& cfg );
-			void aimbot( const math::vector3& eye_pos, const math::vector3& view_angles, const target& tgt, const settings::combat::aimbot& cfg );
+			void aimbot( const math::vector3& eye_pos, const math::vector3& view_angles, const target& tgt, const settings::combat::aimbot& cfg, int humanization );
 
 			struct trigger_result
 			{
@@ -43,7 +44,7 @@ namespace features {
 			};
 
 			[[nodiscard]] trigger_result trace_crosshair( const math::vector3& eye_pos, const math::vector3& view_angles, const std::vector<systems::collector::player>& players, const settings::combat::triggerbot& cfg ) const;
-			void triggerbot( const math::vector3& eye_pos, const math::vector3& view_angles, const std::vector<systems::collector::player>& players, const settings::combat::triggerbot& cfg );
+			void triggerbot( const math::vector3& eye_pos, const math::vector3& view_angles, const std::vector<systems::collector::player>& players, const settings::combat::triggerbot& cfg, int humanization );
 
 			void apply_autostop( );
 			void release_autostop( );
@@ -111,6 +112,7 @@ namespace features {
 				void prepare( std::uintptr_t weapon_vdata, std::uintptr_t weapon );
 
 				[[nodiscard]] bool run( const math::vector3& start, const math::vector3& end, const systems::collector::player& target, const systems::bones::data& bones, result& out ) const;
+				[[nodiscard]] bool can( const math::vector3& start, const math::vector3& direction, float& out_damage ) const;
 				[[nodiscard]] float get_max_damage( int hitgroup, int target_armor, bool has_helmet, int target_team ) const;
 				[[nodiscard]] const weapon_data& get_weapon_data( ) const { return this->m_weapon_data; }
 
@@ -142,7 +144,7 @@ namespace features {
 		inline legit g_legit{};
 		inline shared g_shared{};
 
-	} // namespace combat
+	}
 
 	namespace esp {
 
@@ -219,7 +221,7 @@ namespace features {
 		inline item g_item{};
 		inline projectile g_projectile{};
 
-	} // namespace esp
+	}
 
 	namespace misc {
 
@@ -294,9 +296,72 @@ namespace features {
 
 		};
 
+		class movement
+		{
+		public:
+			void tick( );
+
+		private:
+			bool m_last_on_ground{ false };
+			int m_bhop_state{ 0 };
+
+			std::vector<std::uint16_t> m_stop_keys{};
+			bool m_stopping{ false };
+			std::chrono::steady_clock::time_point m_stop_start{};
+		};
+
+		class crosshair
+		{
+		public:
+			void on_render( );
+
+		private:
+			std::unordered_map<std::uintptr_t, int> m_last_health{};
+			float m_hitmarker_time{ -1.0f };
+		};
+
+		class watermark
+		{
+		public:
+			void on_render( );
+
+		private:
+			float m_fps{ 0.0f };
+			float m_fps_accumulator{ 0.0f };
+			float m_fps_timer{ 0.0f };
+			int m_fps_samples{ 0 };
+			bool m_dragging{ false };
+			float m_drag_offset_x{ 0.0f };
+			float m_drag_offset_y{ 0.0f };
+			int m_last_screen_w{ 0 };
+			int m_last_screen_h{ 0 };
+		};
+
 		inline grenades g_grenades{};
 		inline impacts g_impacts{};
+		inline movement g_movement{};
+		inline crosshair g_crosshair{};
+		inline watermark g_watermark{};
 
-	} // namespace misc
+	}
 
-} // namespace features
+	namespace indicators {
+
+		class display
+		{
+		public:
+			void on_render( );
+
+		private:
+			void draw_keys( float sw, float sh );
+
+			bool m_dragging{ false };
+			float m_drag_offset_x{ 0.0f };
+			float m_drag_offset_y{ 0.0f };
+		};
+
+		inline display g_display{};
+
+	}
+
+}
