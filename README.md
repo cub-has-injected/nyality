@@ -3,7 +3,7 @@
 - This may VAC-Live you, if you will setting it wrong, so be sure your config is safe to use.
 
 > [!CAUTION]  
-> - The executable changes it own name, every time you launch it. Be sure to know that to not get worried.
+> - The executable changes it own name every time you launch it to avoid bans/associations with original name. Be sure to know that to not get worried.
 > - The project was heavily modified under AI Agents with Anthropic Claude Opus 4.6. (CLAUDE.MD)
 > - Be sure to star a original [project](https://github.com/nul1ex/catalyst), thanks!
 
