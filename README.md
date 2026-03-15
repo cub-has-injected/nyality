@@ -4,7 +4,7 @@
 
 > [!CAUTION]  
 > - The executable changes it own name every time you launch it to avoid bans/associations with original name. Be sure to know that to not get worried.
-> - The project was heavily modified under AI Agents with Anthropic Claude Opus 4.6. (CLAUDE.MD)
+> - The project was heavily modified under AI Agents with Anthropic Claude Opus 4.6. [CLAUDE.MD](https://github.com/cub-has-injected/nyality/blob/main/CLAUDE.md)
 > - Be sure to star a original [project](https://github.com/nul1ex/catalyst), thanks!
 
 ### All edits below shows what was added into fork.
