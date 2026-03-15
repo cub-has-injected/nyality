@@ -2,7 +2,7 @@
 
 namespace features::esp {
 
-	void player::on_render( )
+	void player::on_render( zdraw::draw_list& draw_list )
 	{
 		const auto& cfg = settings::g_esp.m_player;
 		if ( !cfg.enabled )
@@ -41,47 +41,47 @@ namespace features::esp {
 
 			if ( cfg.m_box.enabled )
 			{
-				this->add_box( bounds, cfg.m_box, player.is_visible );
+				this->add_box( draw_list, bounds, cfg.m_box, player.is_visible );
 			}
 
 			if ( cfg.m_skeleton.enabled )
 			{
-				this->add_skeleton( bones, cfg.m_skeleton, player.is_visible );
+				this->add_skeleton( draw_list, bones, cfg.m_skeleton, player.is_visible );
 			}
 
 			if ( cfg.m_hitboxes.enabled )
 			{
-				this->add_hitboxes( bones, player, cfg.m_hitboxes, current_time );
+				this->add_hitboxes( draw_list, bones, player, cfg.m_hitboxes, current_time );
 			}
 
 			if ( cfg.m_health_bar.enabled )
 			{
-				this->add_health_bar( bounds, player, cfg.m_health_bar, offsets );
+				this->add_health_bar( draw_list, bounds, player, cfg.m_health_bar, offsets );
 			}
 
 			if ( cfg.m_ammo_bar.enabled && player.weapon.max_ammo > 0 )
 			{
-				this->add_ammo_bar( bounds, player, cfg.m_ammo_bar, offsets );
+				this->add_ammo_bar( draw_list, bounds, player, cfg.m_ammo_bar, offsets );
 			}
 
 			if ( cfg.m_name.enabled && !player.display_name.empty( ) )
 			{
-				this->add_name( bounds, player, cfg.m_name, offsets );
+				this->add_name( draw_list, bounds, player, cfg.m_name, offsets );
 			}
 
 			if ( cfg.m_weapon.enabled && !player.weapon.name.empty( ) )
 			{
-				this->add_weapon( bounds, player, cfg.m_weapon, offsets );
+				this->add_weapon( draw_list, bounds, player, cfg.m_weapon, offsets );
 			}
 
 			if ( cfg.m_info_flags.enabled )
 			{
-				this->add_flags( bounds, player, cfg.m_info_flags, offsets );
+				this->add_flags( draw_list, bounds, player, cfg.m_info_flags, offsets );
 			}
 		}
 	}
 
-	void player::add_box( const systems::bounds::data& bounds, const settings::esp::player::box& cfg, bool is_visible )
+	void player::add_box( zdraw::draw_list& draw_list, const systems::bounds::data& bounds, const settings::esp::player::box& cfg, bool is_visible )
 	{
 		const auto& color = is_visible ? cfg.visible_color : cfg.occluded_color;
 
@@ -110,19 +110,19 @@ namespace features::esp {
 			const auto center_color = zdraw::rgba( static_cast< std::uint8_t >( edge_r * 255 * center_brightness ), static_cast< std::uint8_t >( edge_g * 255 * center_brightness ), static_cast< std::uint8_t >( edge_b * 255 * center_brightness ), static_cast< std::uint8_t >( 255 * center_alpha ) );
 
 			const auto mid_y = y + h * 0.5f;
-			zdraw::rect_filled_multi_color( x + 1, y + 1, w - 2, mid_y - y - 1, edge_color, edge_color, center_color, center_color );
-			zdraw::rect_filled_multi_color( x + 1, mid_y, w - 2, y + h - mid_y - 1, center_color, center_color, edge_color, edge_color );
+			draw_list.add_rect_filled_multi_color( x + 1, y + 1, w - 2, mid_y - y - 1, edge_color, edge_color, center_color, center_color );
+			draw_list.add_rect_filled_multi_color( x + 1, mid_y, w - 2, y + h - mid_y - 1, center_color, center_color, edge_color, edge_color );
 		}
 
-		if ( cfg.style == settings::esp::player::box::style0::full )
+		if ( cfg.style == settings::esp::player::box::style_type::full )
 		{
 			if ( cfg.outline )
 			{
-				zdraw::rect( x - 1, y - 1, w + 2, h + 2, zdraw::rgba( 0, 0, 0, 180 ), 1.0f );
-				zdraw::rect( x, y, w, h, zdraw::rgba( 0, 0, 0, 200 ), 2.0f );
+				draw_list.add_rect( x - 1, y - 1, w + 2, h + 2, zdraw::rgba( 0, 0, 0, 180 ), 1.0f );
+				draw_list.add_rect( x, y, w, h, zdraw::rgba( 0, 0, 0, 200 ), 2.0f );
 			}
 
-			zdraw::rect( x, y, w, h, color, 1.0f );
+			draw_list.add_rect( x, y, w, h, color, 1.0f );
 		}
 		else
 		{
@@ -130,15 +130,15 @@ namespace features::esp {
 
 			if ( cfg.outline )
 			{
-				zdraw::rect_cornered( x - 1, y - 1, w + 2, h + 2, zdraw::rgba( 0, 0, 0, 180 ), corner + 1, 1.0f );
-				zdraw::rect_cornered( x, y, w, h, zdraw::rgba( 0, 0, 0, 200 ), corner, 2.0f );
+				draw_list.add_rect_cornered( x - 1, y - 1, w + 2, h + 2, zdraw::rgba( 0, 0, 0, 180 ), corner + 1, 1.0f );
+				draw_list.add_rect_cornered( x, y, w, h, zdraw::rgba( 0, 0, 0, 200 ), corner, 2.0f );
 			}
 
-			zdraw::rect_cornered( x, y, w, h, color, corner, 1.0f );
+			draw_list.add_rect_cornered( x, y, w, h, color, corner, 1.0f );
 		}
 	}
 
-	void player::add_skeleton( const systems::bones::data& bones, const settings::esp::player::skeleton& cfg, bool is_visible )
+	void player::add_skeleton( zdraw::draw_list& draw_list, const systems::bones::data& bones, const settings::esp::player::skeleton& cfg, bool is_visible )
 	{
 		const auto& color = is_visible ? cfg.visible_color : cfg.occluded_color;
 
@@ -174,11 +174,11 @@ namespace features::esp {
 				continue;
 			}
 
-			zdraw::line( from_screen.x, from_screen.y, to_screen.x, to_screen.y, color, cfg.thickness );
+			draw_list.add_line( from_screen.x, from_screen.y, to_screen.x, to_screen.y, color, cfg.thickness );
 		}
 	}
 
-	void player::add_hitboxes( const systems::bones::data& bones, const systems::collector::player& player, const settings::esp::player::hitboxes& cfg, float current_time )
+	void player::add_hitboxes( zdraw::draw_list& draw_list, const systems::bones::data& bones, const systems::collector::player& player, const settings::esp::player::hitboxes& cfg, float current_time )
 	{
 		const auto& color = player.is_visible ? cfg.visible_color : cfg.occluded_color;
 		const auto eye_pos = systems::g_view.origin( );
@@ -366,7 +366,7 @@ namespace features::esp {
 
 					for ( std::size_t i = 0; i + 5 < clipped.size( ); i += 6 )
 					{
-						zdraw::triangle_filled( clipped[ i ], clipped[ i + 1 ], clipped[ i + 2 ], clipped[ i + 3 ], clipped[ i + 4 ], clipped[ i + 5 ], red );
+						draw_list.add_triangle_filled( clipped[ i ], clipped[ i + 1 ], clipped[ i + 2 ], clipped[ i + 3 ], clipped[ i + 4 ], clipped[ i + 5 ], red );
 					}
 				}
 			}
@@ -382,12 +382,12 @@ namespace features::esp {
 					flat.push_back( p.y );
 				}
 
-				zdraw::polyline( std::span<const float>( flat.data( ), flat.size( ) ), color, true );
+				draw_list.add_polyline( std::span<const float>( flat.data( ), flat.size( ) ), color, true );
 			}
 		}
 	}
 
-	void player::add_health_bar( const systems::bounds::data& bounds, const systems::collector::player& player, const settings::esp::player::health_bar& cfg, draw_offsets& offsets )
+	void player::add_health_bar( zdraw::draw_list& draw_list, const systems::bounds::data& bounds, const systems::collector::player& player, const settings::esp::player::health_bar& cfg, draw_offsets& offsets )
 	{
 		auto& anim = this->m_animations[ player.controller ];
 
@@ -410,7 +410,7 @@ namespace features::esp {
 
 		const auto fraction = anim.health.value( );
 		const auto outline_size = cfg.outline ? 1.0f : 0.0f;
-		const auto vertical = cfg.position == settings::esp::player::health_bar::position::left;
+		const auto vertical = cfg.position == settings::esp::player::health_bar::position_type::left;
 
 		const auto bar_w = vertical ? bar_size : std::floorf( bounds.width( ) );
 		const auto bar_h = vertical ? std::floorf( bounds.height( ) ) : bar_size;
@@ -418,7 +418,7 @@ namespace features::esp {
 
 		const auto x = [ & ]( )
 			{
-				if ( cfg.position == settings::esp::player::health_bar::position::left )
+				if ( cfg.position == settings::esp::player::health_bar::position_type::left )
 				{
 					return std::floorf( bounds.min.x - bar_size - padding - offsets.left - outline_size );
 				}
@@ -430,26 +430,26 @@ namespace features::esp {
 			{
 				switch ( cfg.position )
 				{
-				case settings::esp::player::health_bar::position::left: return std::floorf( bounds.min.y );
-				case settings::esp::player::health_bar::position::top: return std::floorf( bounds.min.y - bar_size - padding - offsets.top - outline_size );
-				case settings::esp::player::health_bar::position::bottom: return std::floorf( bounds.max.y + padding + offsets.bottom + outline_size );
+				case settings::esp::player::health_bar::position_type::left: return std::floorf( bounds.min.y );
+				case settings::esp::player::health_bar::position_type::top: return std::floorf( bounds.min.y - bar_size - padding - offsets.top - outline_size );
+				case settings::esp::player::health_bar::position_type::bottom: return std::floorf( bounds.max.y + padding + offsets.bottom + outline_size );
 				}
 				return 0.0f;
 			}( );
 
 		switch ( cfg.position )
 		{
-		case settings::esp::player::health_bar::position::left: offsets.left += bar_size + padding + ( outline_size * 2.0f ); break;
-		case settings::esp::player::health_bar::position::top: offsets.top += bar_size + padding + ( outline_size * 2.0f ); break;
-		case settings::esp::player::health_bar::position::bottom: offsets.bottom += bar_size + padding + ( outline_size * 2.0f ); break;
+		case settings::esp::player::health_bar::position_type::left: offsets.left += bar_size + padding + ( outline_size * 2.0f ); break;
+		case settings::esp::player::health_bar::position_type::top: offsets.top += bar_size + padding + ( outline_size * 2.0f ); break;
+		case settings::esp::player::health_bar::position_type::bottom: offsets.bottom += bar_size + padding + ( outline_size * 2.0f ); break;
 		}
 
 		if ( cfg.outline )
 		{
-			zdraw::rect_filled( x - 1, y - 1, bar_w + 2, bar_h + 2, cfg.outline_color );
+			draw_list.add_rect_filled( x - 1, y - 1, bar_w + 2, bar_h + 2, cfg.outline_color );
 		}
 
-		zdraw::rect_filled( x, y, bar_w, bar_h, cfg.background_color );
+		draw_list.add_rect_filled( x, y, bar_w, bar_h, cfg.background_color );
 
 		if ( filled > 0 )
 		{
@@ -457,22 +457,22 @@ namespace features::esp {
 			{
 				if ( vertical )
 				{
-					zdraw::rect_filled_multi_color( x, y + bar_h - filled, bar_w, filled, cfg.full_color, cfg.full_color, cfg.low_color, cfg.low_color );
+					draw_list.add_rect_filled_multi_color( x, y + bar_h - filled, bar_w, filled, cfg.full_color, cfg.full_color, cfg.low_color, cfg.low_color );
 				}
 				else
 				{
-					zdraw::rect_filled_multi_color( x, y, filled, bar_h, cfg.low_color, cfg.full_color, cfg.full_color, cfg.low_color );
+					draw_list.add_rect_filled_multi_color( x, y, filled, bar_h, cfg.low_color, cfg.full_color, cfg.full_color, cfg.low_color );
 				}
 			}
 			else
 			{
 				if ( vertical )
 				{
-					zdraw::rect_filled( x, y + bar_h - filled, bar_w, filled, cfg.full_color );
+					draw_list.add_rect_filled( x, y + bar_h - filled, bar_w, filled, cfg.full_color );
 				}
 				else
 				{
-					zdraw::rect_filled( x, y, filled, bar_h, cfg.full_color );
+					draw_list.add_rect_filled( x, y, filled, bar_h, cfg.full_color );
 				}
 			}
 		}
@@ -486,12 +486,12 @@ namespace features::esp {
 			const auto text_x = std::floorf( x + ( bar_w * 0.5f ) - ( text_w * 0.5f ) );
 			const auto text_y = vertical ? std::floorf( y + bar_h - filled - text_h - 2.0f ) : std::floorf( y - text_h - 2.0f );
 
-			zdraw::text<zdraw::tstyles::outlined>( text_x, text_y, text, cfg.text_color );
+			draw_list.add_text( text_x, text_y, text, nullptr, cfg.text_color, zdraw::text_style::outlined );
 			zdraw::pop_font( );
 		}
 	}
 
-	void player::add_ammo_bar( const systems::bounds::data& bounds, const systems::collector::player& player, const settings::esp::player::ammo_bar& cfg, draw_offsets& offsets )
+	void player::add_ammo_bar( zdraw::draw_list& draw_list, const systems::bounds::data& bounds, const systems::collector::player& player, const settings::esp::player::ammo_bar& cfg, draw_offsets& offsets )
 	{
 		auto& anim = this->m_animations[ player.controller ];
 
@@ -514,7 +514,7 @@ namespace features::esp {
 
 		const auto fraction = anim.ammo.value( );
 		const auto outline_size = cfg.outline ? 1.0f : 0.0f;
-		const auto vertical = cfg.position == settings::esp::player::ammo_bar::position::left;
+		const auto vertical = cfg.position == settings::esp::player::ammo_bar::position_type::left;
 
 		const auto bar_w = vertical ? bar_size : std::floorf( bounds.width( ) );
 		const auto bar_h = vertical ? std::floorf( bounds.height( ) ) : bar_size;
@@ -522,7 +522,7 @@ namespace features::esp {
 
 		const auto x = [ & ]( )
 			{
-				if ( cfg.position == settings::esp::player::ammo_bar::position::left )
+				if ( cfg.position == settings::esp::player::ammo_bar::position_type::left )
 				{
 					return std::floorf( bounds.min.x - bar_size - padding - offsets.left - outline_size );
 				}
@@ -534,26 +534,26 @@ namespace features::esp {
 			{
 				switch ( cfg.position )
 				{
-				case settings::esp::player::ammo_bar::position::left: return std::floorf( bounds.min.y );
-				case settings::esp::player::ammo_bar::position::top: return std::floorf( bounds.min.y - bar_size - padding - offsets.top - outline_size );
-				case settings::esp::player::ammo_bar::position::bottom: return std::floorf( bounds.max.y + padding + offsets.bottom + outline_size );
+				case settings::esp::player::ammo_bar::position_type::left: return std::floorf( bounds.min.y );
+				case settings::esp::player::ammo_bar::position_type::top: return std::floorf( bounds.min.y - bar_size - padding - offsets.top - outline_size );
+				case settings::esp::player::ammo_bar::position_type::bottom: return std::floorf( bounds.max.y + padding + offsets.bottom + outline_size );
 				}
 				return 0.0f;
 			}( );
 
 		switch ( cfg.position )
 		{
-		case settings::esp::player::ammo_bar::position::left: offsets.left += bar_size + padding + ( outline_size * 2.0f ); break;
-		case settings::esp::player::ammo_bar::position::top: offsets.top += bar_size + padding + ( outline_size * 2.0f ); break;
-		case settings::esp::player::ammo_bar::position::bottom: offsets.bottom += bar_size + padding + ( outline_size * 2.0f ); break;
+		case settings::esp::player::ammo_bar::position_type::left: offsets.left += bar_size + padding + ( outline_size * 2.0f ); break;
+		case settings::esp::player::ammo_bar::position_type::top: offsets.top += bar_size + padding + ( outline_size * 2.0f ); break;
+		case settings::esp::player::ammo_bar::position_type::bottom: offsets.bottom += bar_size + padding + ( outline_size * 2.0f ); break;
 		}
 
 		if ( cfg.outline )
 		{
-			zdraw::rect_filled( x - 1, y - 1, bar_w + 2, bar_h + 2, cfg.outline_color );
+			draw_list.add_rect_filled( x - 1, y - 1, bar_w + 2, bar_h + 2, cfg.outline_color );
 		}
 
-		zdraw::rect_filled( x, y, bar_w, bar_h, cfg.background_color );
+		draw_list.add_rect_filled( x, y, bar_w, bar_h, cfg.background_color );
 
 		if ( filled > 0 )
 		{
@@ -561,22 +561,22 @@ namespace features::esp {
 			{
 				if ( vertical )
 				{
-					zdraw::rect_filled_multi_color( x, y + bar_h - filled, bar_w, filled, cfg.full_color, cfg.full_color, cfg.low_color, cfg.low_color );
+					draw_list.add_rect_filled_multi_color( x, y + bar_h - filled, bar_w, filled, cfg.full_color, cfg.full_color, cfg.low_color, cfg.low_color );
 				}
 				else
 				{
-					zdraw::rect_filled_multi_color( x, y, filled, bar_h, cfg.low_color, cfg.full_color, cfg.full_color, cfg.low_color );
+					draw_list.add_rect_filled_multi_color( x, y, filled, bar_h, cfg.low_color, cfg.full_color, cfg.full_color, cfg.low_color );
 				}
 			}
 			else
 			{
 				if ( vertical )
 				{
-					zdraw::rect_filled( x, y + bar_h - filled, bar_w, filled, cfg.full_color );
+					draw_list.add_rect_filled( x, y + bar_h - filled, bar_w, filled, cfg.full_color );
 				}
 				else
 				{
-					zdraw::rect_filled( x, y, filled, bar_h, cfg.full_color );
+					draw_list.add_rect_filled( x, y, filled, bar_h, cfg.full_color );
 				}
 			}
 		}
@@ -590,12 +590,12 @@ namespace features::esp {
 			const auto text_x = std::floorf( x + ( bar_w * 0.5f ) - ( text_w * 0.5f ) );
 			const auto text_y = vertical ? std::floorf( y + bar_h - filled - text_h - 2.0f ) : std::floorf( y + bar_h + 2.0f );
 
-			zdraw::text<zdraw::tstyles::outlined>( text_x, text_y, text, cfg.text_color );
+			draw_list.add_text( text_x, text_y, text, nullptr, cfg.text_color, zdraw::text_style::outlined );
 			zdraw::pop_font( );
 		}
 	}
 
-	void player::add_name( const systems::bounds::data& bounds, const systems::collector::player& player, const settings::esp::player::name& cfg, draw_offsets& offsets )
+	void player::add_name( zdraw::draw_list& draw_list, const systems::bounds::data& bounds, const systems::collector::player& player, const settings::esp::player::name& cfg, draw_offsets& offsets )
 	{
 		zdraw::push_font( g::render.fonts( ).pretzel_12 );
 
@@ -603,13 +603,13 @@ namespace features::esp {
 		const auto text_x = std::floorf( bounds.min.x + ( bounds.width( ) * 0.5f ) - ( text_w * 0.5f ) );
 		const auto text_y = std::floorf( bounds.min.y - text_h - 2.0f - offsets.top );
 
-		zdraw::text<zdraw::tstyles::outlined>( text_x, text_y, player.display_name, cfg.color );
+		draw_list.add_text( text_x, text_y, player.display_name, nullptr, cfg.color, zdraw::text_style::outlined );
 		zdraw::pop_font( );
 
 		offsets.top += text_h + 2.0f;
 	}
 
-	void player::add_weapon( const systems::bounds::data& bounds, const systems::collector::player& player, const settings::esp::player::weapon& cfg, draw_offsets& offsets )
+	void player::add_weapon( zdraw::draw_list& draw_list, const systems::bounds::data& bounds, const systems::collector::player& player, const settings::esp::player::weapon& cfg, draw_offsets& offsets )
 	{
 		zdraw::push_font( g::render.fonts( ).mochi_12 );
 
@@ -624,7 +624,7 @@ namespace features::esp {
 			const auto icon_x = std::floorf( bounds.min.x + ( bounds.width( ) * 0.5f ) - ( icon_w * 0.5f ) );
 			const auto icon_y = std::floorf( bounds.max.y + 2.0f + offsets.bottom + total_height );
 
-			zdraw::text<zdraw::tstyles::outlined>( icon_x, icon_y, icon, cfg.icon_color );
+			draw_list.add_text( icon_x, icon_y, icon, nullptr, cfg.icon_color, zdraw::text_style::outlined );
 			zdraw::pop_font( );
 
 			total_height += icon_h + 2.0f;
@@ -636,7 +636,7 @@ namespace features::esp {
 			const auto text_x = std::floorf( bounds.min.x + ( bounds.width( ) * 0.5f ) - ( text_w * 0.5f ) );
 			const auto text_y = std::floorf( bounds.max.y + 2.0f + offsets.bottom + total_height );
 
-			zdraw::text<zdraw::tstyles::outlined>( text_x, text_y, player.weapon.name, cfg.text_color );
+			draw_list.add_text( text_x, text_y, player.weapon.name, nullptr, cfg.text_color, zdraw::text_style::outlined );
 
 			total_height += text_h + 2.0f;
 		}
@@ -646,7 +646,7 @@ namespace features::esp {
 		offsets.bottom += total_height;
 	}
 
-	void player::add_flags( const systems::bounds::data& bounds, const systems::collector::player& player, const settings::esp::player::info_flags& cfg, draw_offsets& offsets )
+	void player::add_flags( zdraw::draw_list& draw_list, const systems::bounds::data& bounds, const systems::collector::player& player, const settings::esp::player::info_flags& cfg, draw_offsets& offsets )
 	{
 		zdraw::push_font( g::render.fonts( ).pixel7_10 );
 
@@ -656,7 +656,7 @@ namespace features::esp {
 
 		const auto draw_flag = [ & ]( const std::string& text, const zdraw::rgba& color )
 			{
-				zdraw::text<zdraw::tstyles::outlined>( x, y, text, color );
+				draw_list.add_text( x, y, text, nullptr, color, zdraw::text_style::outlined );
 				const auto [text_w, text_h] = zdraw::measure_text( text );
 				y += text_h;
 				max_w = std::max( max_w, text_w );

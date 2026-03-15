@@ -1,27 +1,14 @@
-#define NOMINMAX
+#include "zdraw.hpp"
 
-// std
+#include <d3dcompiler.h>
+#include <wincodec.h>
 #include <algorithm>
 #include <fstream>
 #include <numbers>
-#include <vector>
 
-// win32 / dx
-#include <d3d11.h>
-#include <d3dcompiler.h>
-#include <wincodec.h>
-#include <wrl/client.h>
-
-#pragma comment( lib, "d3d11.lib" )
-#pragma comment( lib, "d3dcompiler.lib" )
-#pragma comment( lib, "dwmapi.lib" )
-
-// external
 #include <ft2build.h>
 #include <freetype/freetype.h>
 
-// project
-#include "zdraw.hpp"
 #include "external/fonts/inter.hpp"
 #include "external/shaders/shaders.hpp"
 
@@ -188,7 +175,7 @@ namespace zdraw {
 			static constexpr std::uint32_t k_initial_vertex_capacity{ 65536u * static_cast< std::uint32_t >( sizeof( vertex ) ) };
 			static constexpr std::uint32_t k_initial_index_capacity{ 131072u * static_cast< std::uint32_t >( sizeof( std::uint32_t ) ) };
 
-			draw_list m_current_draw_list{};
+			draw_list m_draw_lists[ 3 ]{};
 			render_state_cache m_state_cache{};
 
 			std::vector<std::unique_ptr<font>> m_fonts{};
@@ -294,7 +281,7 @@ namespace zdraw {
 				return false;
 			}
 
-			D3D11_SAMPLER_DESC sampler_desc;
+			D3D11_SAMPLER_DESC sampler_desc{};
 			sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 			sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 			sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -533,10 +520,8 @@ namespace zdraw {
 			return g_render.m_fonts.back( ).get( );
 		}
 
-		static void ensure_buffer_capacity( )
+		static void ensure_buffer_capacity( draw_list& dl )
 		{
-			auto& dl{ g_render.m_current_draw_list };
-
 			const std::uint32_t required_vertex_bytes{ static_cast< std::uint32_t >( dl.m_vertices.size( ) ) * static_cast< std::uint32_t >( sizeof( vertex ) ) };
 			const std::uint32_t required_index_bytes{ static_cast< std::uint32_t >( dl.m_indices.size( ) ) * static_cast< std::uint32_t >( sizeof( std::uint32_t ) ) };
 
@@ -560,7 +545,7 @@ namespace zdraw {
 			D3D11_MAPPED_SUBRESOURCE mapped{};
 			if ( SUCCEEDED( g_render.m_context->Map( g_render.m_constant_buffer.Get( ), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped ) ) )
 			{
-				auto* cb{ static_cast< constant_buffer_data* >( mapped.pData ) };
+				auto cb{ static_cast< constant_buffer_data* >( mapped.pData ) };
 
 				const auto L{ 0.0f };
 				const auto R{ width };
@@ -569,7 +554,7 @@ namespace zdraw {
 
 				const float ortho_projection[ 4 ][ 4 ]
 				{
-					{ 2.0f / ( R - L ),  0.0f, 0.0f, 0.0f },
+					{ 2.0f / ( R - L ), 0.0f, 0.0f, 0.0f },
 					{ 0.0f, 2.0f / ( T - B ), 0.0f, 0.0f },
 					{ 0.0f, 0.0f, 0.5f, 0.0f },
 					{ ( R + L ) / ( L - R ), ( T + B ) / ( B - T ), 0.5f, 1.0f },
@@ -730,7 +715,7 @@ namespace zdraw {
 		}
 
 		const auto half_thickness{ std::max( 0.0f, thickness ) * 0.5f };
-		const auto perp_x{ -( dy / length ) * half_thickness };
+		const auto perp_x{ ( -dy / length ) * half_thickness };
 		const auto perp_y{ ( dx / length ) * half_thickness };
 
 		this->push_vertex( x0 + perp_x, y0 + perp_y, 0.0f, 0.0f, color );
@@ -739,8 +724,8 @@ namespace zdraw {
 		this->push_vertex( x0 - perp_x, y0 - perp_y, 0.0f, 1.0f, color );
 
 		auto idx{ this->m_indices.allocate( 6 ) };
-		idx[ 0 ] = vtx_base + 0; idx[ 1 ] = vtx_base + 1; idx[ 2 ] = vtx_base + 2;
-		idx[ 3 ] = vtx_base + 0; idx[ 4 ] = vtx_base + 2; idx[ 5 ] = vtx_base + 3;
+		idx[ 0 ] = vtx_base; idx[ 1 ] = vtx_base + 1; idx[ 2 ] = vtx_base + 2;
+		idx[ 3 ] = vtx_base; idx[ 4 ] = vtx_base + 2; idx[ 5 ] = vtx_base + 3;
 
 		this->m_commands.data( )[ this->m_commands.size( ) - 1 ].m_idx_count += 6u;
 	}
@@ -1193,9 +1178,7 @@ namespace zdraw {
 		this->push_vertex( x2, y2, 0.0f, 0.0f, color );
 
 		auto idx{ this->m_indices.allocate( 3 ) };
-		idx[ 0 ] = vtx_base;
-		idx[ 1 ] = vtx_base + 1;
-		idx[ 2 ] = vtx_base + 2;
+		idx[ 0 ] = vtx_base; idx[ 1 ] = vtx_base + 1; idx[ 2 ] = vtx_base + 2;
 
 		this->m_commands.data( )[ this->m_commands.size( ) - 1 ].m_idx_count += 3u;
 	}
@@ -1211,9 +1194,7 @@ namespace zdraw {
 		this->push_vertex( x2, y2, 0.0f, 0.0f, color2 );
 
 		auto idx{ this->m_indices.allocate( 3 ) };
-		idx[ 0 ] = vtx_base;
-		idx[ 1 ] = vtx_base + 1;
-		idx[ 2 ] = vtx_base + 2;
+		idx[ 0 ] = vtx_base; idx[ 1 ] = vtx_base + 1; idx[ 2 ] = vtx_base + 2;
 
 		this->m_commands.data( )[ this->m_commands.size( ) - 1 ].m_idx_count += 3u;
 	}
@@ -1229,53 +1210,28 @@ namespace zdraw {
 		this->ensure_draw_cmd( nullptr );
 
 		const auto vtx_base{ static_cast< std::uint32_t >( this->m_vertices.size( ) ) };
-
-		constexpr auto aa_fringe{ 1.0f };
-		const auto inner_radius = radius - aa_fringe * 0.5f;
-		const auto outer_radius = radius + aa_fringe * 0.5f;
-
-		auto transparent = color;
-		transparent.a = 0;
+		const auto angle_increment{ 2.0f * std::numbers::pi_v<float> / static_cast< float >( segments ) };
 
 		this->push_vertex( x, y, 0.5f, 0.5f, color );
-
-		const auto angle_increment{ 2.0f * std::numbers::pi_v<float> / static_cast< float >( segments ) };
 
 		for ( int i{ 0 }; i < segments; ++i )
 		{
 			const auto angle{ angle_increment * static_cast< float >( i ) };
-			const auto cos_a = std::cos( angle );
-			const auto sin_a = std::sin( angle );
-
-			this->push_vertex( x + cos_a * inner_radius, y + sin_a * inner_radius, 0.5f, 0.5f, color );
-			this->push_vertex( x + cos_a * outer_radius, y + sin_a * outer_radius, 0.5f, 0.5f, transparent );
+			this->push_vertex( x + std::cos( angle ) * radius, y + std::sin( angle ) * radius, 0.5f, 0.5f, color );
 		}
 
-		const auto tri_count = segments * 3;
-		auto idx = this->m_indices.allocate( static_cast< std::size_t >( tri_count ) * 3u );
+		auto idx{ this->m_indices.allocate( static_cast< std::size_t >( segments ) * 3u ) };
 
-		for ( int i = 0; i < segments; ++i )
+		for ( int i{ 0 }; i < segments; ++i )
 		{
-			const auto next = ( i + 1 ) % segments;
-
-			const auto curr_inner = vtx_base + 1 + static_cast< std::uint32_t >( i * 2 );
-			const auto curr_outer = vtx_base + 2 + static_cast< std::uint32_t >( i * 2 );
-			const auto next_inner = vtx_base + 1 + static_cast< std::uint32_t >( next * 2 );
-			const auto next_outer = vtx_base + 2 + static_cast< std::uint32_t >( next * 2 );
-
-			const auto base_idx = i * 9;
+			const auto next{ ( i + 1 ) % segments };
+			const auto base_idx{ i * 3 };
 			idx[ base_idx + 0 ] = vtx_base;
-			idx[ base_idx + 1 ] = curr_inner;
-			idx[ base_idx + 2 ] = next_inner;
-			idx[ base_idx + 3 ] = curr_inner;
-			idx[ base_idx + 4 ] = curr_outer;
-			idx[ base_idx + 5 ] = next_outer;
-			idx[ base_idx + 6 ] = curr_inner;
-			idx[ base_idx + 7 ] = next_outer;
-			idx[ base_idx + 8 ] = next_inner;
+			idx[ base_idx + 1 ] = vtx_base + 1 + static_cast< std::uint32_t >( i );
+			idx[ base_idx + 2 ] = vtx_base + 1 + static_cast< std::uint32_t >( next );
 		}
 
-		this->m_commands.data( )[ this->m_commands.size( ) - 1 ].m_idx_count += static_cast< std::uint32_t >( tri_count ) * 3u;
+		this->m_commands.data( )[ this->m_commands.size( ) - 1 ].m_idx_count += static_cast< std::uint32_t >( segments ) * 3u;
 	}
 
 	void draw_list::add_arc( float x, float y, float radius, float start_angle, float end_angle, rgba color, int segments, float thickness )
@@ -1321,27 +1277,52 @@ namespace zdraw {
 		for ( int i{ 0 }; i <= segments; ++i )
 		{
 			const auto angle{ start_angle + angle_increment * static_cast< float >( i ) };
-			const auto px{ x + std::cos( angle ) * radius };
-			const auto py{ y + std::sin( angle ) * radius };
-			this->push_vertex( px, py, 0.5f, 0.5f, color );
+			this->push_vertex( x + std::cos( angle ) * radius, y + std::sin( angle ) * radius, 0.5f, 0.5f, color );
 		}
 
-		const auto idx_count{ static_cast< std::size_t >( segments ) * 3u };
-		auto idx_data{ this->m_indices.allocate( idx_count ) };
+		auto idx{ this->m_indices.allocate( static_cast< std::size_t >( segments ) * 3u ) };
 
 		for ( int i{ 0 }; i < segments; ++i )
 		{
 			const auto base_idx{ i * 3 };
-			idx_data[ base_idx + 0 ] = vtx_base;
-			idx_data[ base_idx + 1 ] = vtx_base + 1 + static_cast< std::uint32_t >( i );
-			idx_data[ base_idx + 2 ] = vtx_base + 1 + static_cast< std::uint32_t >( i + 1 );
+			idx[ base_idx + 0 ] = vtx_base;
+			idx[ base_idx + 1 ] = vtx_base + 1 + static_cast< std::uint32_t >( i );
+			idx[ base_idx + 2 ] = vtx_base + 2 + static_cast< std::uint32_t >( i );
 		}
 
-		this->m_commands.data( )[ this->m_commands.size( ) - 1 ].m_idx_count += static_cast< std::uint32_t >( idx_count );
+		this->m_commands.data( )[ this->m_commands.size( ) - 1 ].m_idx_count += static_cast< std::uint32_t >( segments ) * 3u;
 	}
 
-	void draw_list::add_text( float x, float y, std::string_view text, const font* f, rgba color )
+	void draw_list::add_text( float x, float y, std::string_view text, const font* f, rgba color, text_style style )
 	{
+		if ( style == text_style::outlined )
+		{
+			constexpr std::array< std::pair< float, float >, 4 > offsets
+			{ {
+				{ -1.0f,  0.0f },
+				{  1.0f,  0.0f },
+				{  0.0f, -1.0f },
+				{  0.0f,  1.0f }
+			} };
+
+			const rgba outline_color{ 0, 0, 0, color.a };
+
+			for ( const auto& [ox, oy] : offsets )
+			{
+				this->add_text( x + ox, y + oy, text, f, outline_color, text_style::normal );
+			}
+		}
+		else if ( style == text_style::shadowed )
+		{
+			const rgba shadow_color{ 0, 0, 0, color.a };
+			this->add_text( x + 1.0f, y + 1.0f, text, f, shadow_color, text_style::normal );
+		}
+
+		if ( f == nullptr ) [[unlikely]]
+		{
+			f = get_font( );
+		}
+
 		if ( f == nullptr || f->m_atlas == nullptr || f->m_atlas->m_texture_srv == nullptr ) [[unlikely]]
 		{
 			return;
@@ -1409,10 +1390,11 @@ namespace zdraw {
 		auto current_x{ x };
 		auto current_y{ y + f->m_ascent };
 
-		auto text_width = 0.0f;
+		auto text_width{ 0.0f };
 		auto text_height = f->m_line_height;
 
-		auto temp_x = 0.0f;
+		auto temp_x{ 0.0f };
+
 		for ( char c : text )
 		{
 			if ( c == '\n' )
@@ -1638,8 +1620,11 @@ namespace zdraw {
 		}
 
 		{
+			for ( auto& dl : detail::g_render.m_draw_lists )
+			{
+				dl.reserve( 5000u, 10000u, 256u );
+			}
 
-			detail::g_render.m_current_draw_list.reserve( 5000u, 10000u, 256u );
 			detail::g_render.m_default_font = detail::create_font( { std::span( reinterpret_cast< const std::byte* >( fonts::inter ), sizeof( fonts::inter ) ) }, 15.0f, 512, 512 );
 			detail::g_render.m_font_stack.push_back( detail::g_render.m_default_font );
 		}
@@ -1672,7 +1657,11 @@ namespace zdraw {
 			d.m_framerate = d.m_framerate * ( 1.0f - d.k_framerate_smoothing ) + instantaneous_fps * d.k_framerate_smoothing;
 		}
 
-		d.m_current_draw_list.clear( );
+		for ( auto& dl : d.m_draw_lists )
+		{
+			dl.clear( );
+		}
+
 		d.m_state_cache.reset_frame( );
 
 		d.m_vertex_buffer.reset_offsets( );
@@ -1685,42 +1674,6 @@ namespace zdraw {
 	void end_frame( )
 	{
 		auto& d{ detail::g_render };
-		auto& dl{ d.m_current_draw_list };
-
-		if ( dl.m_vertices.size( ) == 0 || dl.m_commands.size( ) == 0 ) [[unlikely]]
-		{
-			return;
-		}
-
-		detail::ensure_buffer_capacity( );
-
-		const auto vertex_data_size{ static_cast< std::uint32_t >( dl.m_vertices.size( ) ) * static_cast< std::uint32_t >( sizeof( vertex ) ) };
-		const auto index_data_size{ static_cast< std::uint32_t >( dl.m_indices.size( ) ) * static_cast< std::uint32_t >( sizeof( std::uint32_t ) ) };
-
-		if ( !d.m_vertex_buffer.map_discard( d.m_context.Get( ) ) || !d.m_index_buffer.map_discard( d.m_context.Get( ) ) )
-		{
-			d.m_vertex_buffer.unmap( d.m_context.Get( ) );
-			d.m_index_buffer.unmap( d.m_context.Get( ) );
-			return;
-		}
-
-		auto vertex_dest{ d.m_vertex_buffer.allocate( vertex_data_size ) };
-		auto index_dest{ d.m_index_buffer.allocate( index_data_size ) };
-
-		if ( vertex_dest != nullptr && index_dest != nullptr )
-		{
-			std::memcpy( vertex_dest, dl.m_vertices.data( ), vertex_data_size );
-			std::memcpy( index_dest, dl.m_indices.data( ), index_data_size );
-		}
-		else
-		{
-			d.m_vertex_buffer.unmap( d.m_context.Get( ) );
-			d.m_index_buffer.unmap( d.m_context.Get( ) );
-			return;
-		}
-
-		d.m_vertex_buffer.unmap( d.m_context.Get( ) );
-		d.m_index_buffer.unmap( d.m_context.Get( ) );
 
 		D3D11_VIEWPORT viewport{};
 		UINT num_viewports{ 1u };
@@ -1728,58 +1681,101 @@ namespace zdraw {
 		const float vp_w = num_viewports > 0 ? viewport.Width : static_cast< float >( GetSystemMetrics( SM_CXSCREEN ) );
 		const float vp_h = num_viewports > 0 ? viewport.Height : static_cast< float >( GetSystemMetrics( SM_CYSCREEN ) );
 
-		detail::setup_projection_matrix( vp_w, vp_h );
-		detail::setup_render_state( );
-
 		D3D11_RECT viewport_rect{};
 		viewport_rect.left = 0;
 		viewport_rect.top = 0;
 		viewport_rect.right = static_cast< LONG >( std::ceil( vp_w ) );
 		viewport_rect.bottom = static_cast< LONG >( std::ceil( vp_h ) );
-		d.m_context->RSSetScissorRects( 1, &viewport_rect );
-		d.m_state_cache.set_scissor( viewport_rect );
 
-		auto& state_cache{ d.m_state_cache };
-		for ( std::size_t i{ 0 }; i < dl.m_commands.size( ); ++i )
+		d.m_frame_vertex_count = 0u;
+		d.m_frame_index_count = 0u;
+
+		for ( auto& dl : d.m_draw_lists )
 		{
-			const auto& cmd{ dl.m_commands.data( )[ i ] };
-			if ( cmd.m_idx_count == 0u )
+			if ( dl.m_vertices.size( ) == 0 || dl.m_commands.size( ) == 0 )
 			{
 				continue;
 			}
 
-			D3D11_RECT scissor{ viewport_rect };
-			if ( cmd.m_has_clip )
+			detail::ensure_buffer_capacity( dl );
+
+			const auto vertex_data_size{ static_cast< std::uint32_t >( dl.m_vertices.size( ) ) * static_cast< std::uint32_t >( sizeof( vertex ) ) };
+			const auto index_data_size{ static_cast< std::uint32_t >( dl.m_indices.size( ) ) * static_cast< std::uint32_t >( sizeof( std::uint32_t ) ) };
+
+			if ( !d.m_vertex_buffer.map_discard( d.m_context.Get( ) ) || !d.m_index_buffer.map_discard( d.m_context.Get( ) ) )
 			{
-				scissor = detail::intersect_rect( scissor, cmd.m_clip_rect );
-				if ( scissor.right <= scissor.left || scissor.bottom <= scissor.top )
+				d.m_vertex_buffer.unmap( d.m_context.Get( ) );
+				d.m_index_buffer.unmap( d.m_context.Get( ) );
+				continue;
+			}
+
+			auto vertex_dest{ d.m_vertex_buffer.allocate( vertex_data_size ) };
+			auto index_dest{ d.m_index_buffer.allocate( index_data_size ) };
+
+			if ( vertex_dest != nullptr && index_dest != nullptr )
+			{
+				std::memcpy( vertex_dest, dl.m_vertices.data( ), vertex_data_size );
+				std::memcpy( index_dest, dl.m_indices.data( ), index_data_size );
+			}
+			else
+			{
+				d.m_vertex_buffer.unmap( d.m_context.Get( ) );
+				d.m_index_buffer.unmap( d.m_context.Get( ) );
+				continue;
+			}
+
+			d.m_vertex_buffer.unmap( d.m_context.Get( ) );
+			d.m_index_buffer.unmap( d.m_context.Get( ) );
+
+			detail::setup_projection_matrix( vp_w, vp_h );
+			detail::setup_render_state( );
+
+			d.m_state_cache.reset_frame( );
+			d.m_context->RSSetScissorRects( 1, &viewport_rect );
+			d.m_state_cache.set_scissor( viewport_rect );
+
+			auto& state_cache{ d.m_state_cache };
+			for ( std::size_t i{ 0 }; i < dl.m_commands.size( ); ++i )
+			{
+				const auto& cmd{ dl.m_commands.data( )[ i ] };
+				if ( cmd.m_idx_count == 0u )
 				{
 					continue;
 				}
+
+				D3D11_RECT scissor{ viewport_rect };
+				if ( cmd.m_has_clip )
+				{
+					scissor = detail::intersect_rect( scissor, cmd.m_clip_rect );
+					if ( scissor.right <= scissor.left || scissor.bottom <= scissor.top )
+					{
+						continue;
+					}
+				}
+
+				if ( state_cache.needs_scissor( scissor ) )
+				{
+					d.m_context->RSSetScissorRects( 1, &scissor );
+					state_cache.set_scissor( scissor );
+				}
+
+				if ( state_cache.needs_texture_bind( cmd.m_texture.Get( ) ) )
+				{
+					d.m_context->PSSetShaderResources( 0, 1, cmd.m_texture.GetAddressOf( ) );
+					state_cache.set_texture( cmd.m_texture.Get( ) );
+				}
+
+				d.m_context->DrawIndexed( cmd.m_idx_count, cmd.m_idx_offset, 0 );
 			}
 
-			if ( state_cache.needs_scissor( scissor ) )
-			{
-				d.m_context->RSSetScissorRects( 1, &scissor );
-				state_cache.set_scissor( scissor );
-			}
-
-			if ( state_cache.needs_texture_bind( cmd.m_texture.Get( ) ) )
-			{
-				d.m_context->PSSetShaderResources( 0, 1, cmd.m_texture.GetAddressOf( ) );
-				state_cache.set_texture( cmd.m_texture.Get( ) );
-			}
-
-			d.m_context->DrawIndexed( cmd.m_idx_count, cmd.m_idx_offset, 0 );
+			d.m_frame_vertex_count += static_cast< std::uint32_t >( dl.m_vertices.size( ) );
+			d.m_frame_index_count += static_cast< std::uint32_t >( dl.m_indices.size( ) );
 		}
-
-		d.m_frame_vertex_count = static_cast< std::uint32_t >( dl.m_vertices.size( ) );
-		d.m_frame_index_count = static_cast< std::uint32_t >( dl.m_indices.size( ) );
 	}
 
-	draw_list& get_draw_list( ) noexcept
+	draw_list& get_draw_list( draw_layer layer ) noexcept
 	{
-		return detail::g_render.m_current_draw_list;
+		return detail::g_render.m_draw_lists[ static_cast< int >( layer ) ];
 	}
 
 	std::pair<int, int> get_display_size( ) noexcept
@@ -2114,102 +2110,6 @@ namespace zdraw {
 		{
 			detail::g_render.m_font_stack.pop_back( );
 		}
-	}
-
-	void push_clip_rect( float x0, float y0, float x1, float y1 )
-	{
-		get_draw_list( ).push_clip_rect( x0, y0, x1, y1 );
-	}
-
-	void pop_clip_rect( )
-	{
-		get_draw_list( ).pop_clip_rect( );
-	}
-
-	void line( float x0, float y0, float x1, float y1, rgba color, float thickness )
-	{
-		get_draw_list( ).add_line( x0, y0, x1, y1, color, thickness );
-	}
-
-	void rect( float x, float y, float w, float h, rgba color, float thickness )
-	{
-		get_draw_list( ).add_rect( x, y, w, h, color, thickness );
-	}
-
-	void rect_cornered( float x, float y, float w, float h, rgba color, float corner_length, float thickness )
-	{
-		get_draw_list( ).add_rect_cornered( x, y, w, h, color, corner_length, thickness );
-	}
-
-	void rect_filled( float x, float y, float w, float h, rgba color )
-	{
-		get_draw_list( ).add_rect_filled( x, y, w, h, color );
-	}
-
-	void rect_filled_multi_color( float x, float y, float w, float h, rgba color_tl, rgba color_tr, rgba color_br, rgba color_bl )
-	{
-		get_draw_list( ).add_rect_filled_multi_color( x, y, w, h, color_tl, color_tr, color_br, color_bl );
-	}
-
-	void rect_textured( float x, float y, float w, float h, ID3D11ShaderResourceView* tex, float u0, float v0, float u1, float v1, rgba color )
-	{
-		get_draw_list( ).add_rect_textured( x, y, w, h, tex, u0, v0, u1, v1, color );
-	}
-
-	void convex_poly_filled( std::span<const float> points, rgba color )
-	{
-		get_draw_list( ).add_convex_poly_filled( points, color );
-	}
-
-	void polyline( std::span<const float> points, rgba color, bool closed, float thickness )
-	{
-		get_draw_list( ).add_polyline( points, color, closed, thickness );
-	}
-
-	void polyline_multi_color( std::span<const float> points, std::span<const rgba> colors, bool closed, float thickness )
-	{
-		get_draw_list( ).add_polyline_multi_color( points, colors, closed, thickness );
-	}
-
-	void triangle( float x0, float y0, float x1, float y1, float x2, float y2, rgba color, float thickness )
-	{
-		get_draw_list( ).add_triangle( x0, y0, x1, y1, x2, y2, color, thickness );
-	}
-
-	void triangle_filled( float x0, float y0, float x1, float y1, float x2, float y2, rgba color )
-	{
-		get_draw_list( ).add_triangle_filled( x0, y0, x1, y1, x2, y2, color );
-	}
-
-	void triangle_filled_multi_color( float x0, float y0, float x1, float y1, float x2, float y2, rgba color0, rgba color1, rgba color2 )
-	{
-		get_draw_list( ).add_triangle_filled_multi_color( x0, y0, x1, y1, x2, y2, color0, color1, color2 );
-	}
-
-	void circle( float x, float y, float radius, rgba color, int segments, float thickness )
-	{
-		get_draw_list( ).add_circle( x, y, radius, color, segments, thickness );
-	}
-
-	void circle_filled( float x, float y, float radius, rgba color, int segments )
-	{
-		get_draw_list( ).add_circle_filled( x, y, radius, color, segments );
-	}
-
-	void arc( float x, float y, float radius, float start_angle, float end_angle, rgba color, int segments, float thickness )
-	{
-		get_draw_list( ).add_arc( x, y, radius, start_angle, end_angle, color, segments, thickness );
-	}
-
-	void arc_filled( float x, float y, float radius, float start_angle, float end_angle, rgba color, int segments )
-	{
-		get_draw_list( ).add_arc_filled( x, y, radius, start_angle, end_angle, color, segments );
-	}
-
-	void text_multi_color( float x, float y, std::string_view text, rgba color_tl, rgba color_tr, rgba color_br, rgba color_bl, const font* fnt )
-	{
-		const auto f{ fnt != nullptr ? fnt : get_font( ) };
-		get_draw_list( ).add_text_multi_color( x, y, text, f, color_tl, color_tr, color_br, color_bl );
 	}
 
 	std::pair<float, float> measure_text( std::string_view text, const font* fnt )

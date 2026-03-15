@@ -59,8 +59,8 @@ namespace zui {
 		bool mouse_clicked( );
 		bool mouse_released( );
 		bool mouse_hovered( const rect& r );
-		bool overlay_blocking_input( );
 		window_state* get_current_window( );
+		bool overlay_blocking_input( );
 
 	} // namespace detail
 
@@ -139,6 +139,9 @@ namespace zui {
 		zdraw::rgba text_input_bg{ 24, 24, 24, 255 };
 		zdraw::rgba text_input_border{ 50, 50, 50, 255 };
 
+		zdraw::rgba popup_bg{ 16, 16, 16, 255 };
+		zdraw::rgba popup_border{ 45, 45, 45, 255 };
+
 		zdraw::rgba text{ 215, 215, 215, 255 };
 		zdraw::rgba accent{ 130, 190, 235, 255 };
 	};
@@ -198,6 +201,8 @@ namespace zui {
 		color_picker_border,
 		text_input_bg,
 		text_input_border,
+		popup_bg,
+		popup_border,
 		text,
 		accent
 	};
@@ -228,7 +233,6 @@ namespace zui {
 	void begin( );
 	void end( );
 
-	bool hit_test_active_ui( float x, float y );
 	bool process_wndproc_message( UINT msg, WPARAM wparam, LPARAM lparam );
 
 	style& get_style( );
@@ -280,5 +284,8 @@ namespace zui {
 	bool color_picker( std::string_view label, zdraw::rgba& color, float width = 0.0f, bool show_alpha = true );
 
 	bool text_input( std::string_view label, std::string& text, std::size_t max_length = 256, std::string_view hint = "" );
+
+	bool begin_popup( std::string_view label, float width = 200.0f );
+	void end_popup( );
 
 } // namespace zui

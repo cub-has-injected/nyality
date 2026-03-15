@@ -25,8 +25,8 @@ private:
 
 	float m_x{ 200.0f };
 	float m_y{ 150.0f };
-	float m_w{ 680.0f };
-	float m_h{ 855.0f };
+	float m_w{ 650.0f };
+	float m_h{ 425.0f };
 
 	static constexpr const char* k_weapon_groups[ ]{ "pistol", "smg", "rifle", "shotgun", "sniper", "lmg" };
 	int m_weapon_group{ 0 };

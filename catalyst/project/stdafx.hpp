@@ -37,6 +37,7 @@
 #include <utilities/math/math.hpp>
 #include <utilities/modules/modules.hpp>
 #include <utilities/offsets/offsets.hpp>
+#include <utilities/timing/timing.hpp>
 #include <utilities/cstypes.hpp>
 #include <utilities/fnv1a.hpp>
 #include <utilities/random.hpp>

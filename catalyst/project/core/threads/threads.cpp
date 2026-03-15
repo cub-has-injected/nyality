@@ -1,8 +1,5 @@
 #include <stdafx.hpp>
 
-#include <timeapi.h>
-#pragma comment( lib, "winmm.lib" )
-
 namespace threads {
 
 	void game( )
@@ -52,8 +49,6 @@ namespace threads {
 
 	void combat( )
 	{
-		timeBeginPeriod( 1 );
-
 		constexpr auto target_tps{ 128 };
 		constexpr auto tick_interval = std::chrono::nanoseconds( 1'000'000'000 / target_tps );
 		auto next_tick = std::chrono::steady_clock::now( );

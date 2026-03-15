@@ -2,7 +2,7 @@
 
 namespace features::esp {
 
-	void item::on_render( )
+	void item::on_render( zdraw::draw_list& draw_list )
 	{
 		const auto& cfg = settings::g_esp.m_item;
 		if ( !cfg.enabled )
@@ -35,22 +35,22 @@ namespace features::esp {
 
 			if ( cfg.m_icon.enabled )
 			{
-				this->add_icon( screen, item, cfg.m_icon, y_offset );
+				this->add_icon( draw_list, screen, item, cfg.m_icon, y_offset );
 			}
 
 			if ( cfg.m_name.enabled )
 			{
-				this->add_name( screen, item, cfg.m_name, y_offset );
+				this->add_name( draw_list, screen, item, cfg.m_name, y_offset );
 			}
 
 			if ( cfg.m_ammo.enabled && item.max_ammo > 0 )
 			{
-				this->add_ammo( screen, item, cfg.m_ammo, y_offset );
+				this->add_ammo( draw_list, screen, item, cfg.m_ammo, y_offset );
 			}
 		}
 	}
 
-	void item::add_icon( const math::vector2& screen, const systems::collector::item& item, const settings::esp::item::icon& cfg, float& y_offset )
+	void item::add_icon( zdraw::draw_list& draw_list, const math::vector2& screen, const systems::collector::item& item, const settings::esp::item::icon& cfg, float& y_offset )
 	{
 		zdraw::push_font( g::render.fonts( ).weapons_15 );
 
@@ -59,14 +59,14 @@ namespace features::esp {
 		const auto x = std::floorf( screen.x - text_w * 0.5f );
 		const auto y = std::floorf( screen.y - text_h * 0.5f + y_offset );
 
-		zdraw::text<zdraw::tstyles::outlined>( x, y, icon, cfg.color );
+		draw_list.add_text( x, y, icon, nullptr, cfg.color, zdraw::text_style::outlined );
 
 		zdraw::pop_font( );
 
 		y_offset += text_h - 5.5f;
 	}
 
-	void item::add_name( const math::vector2& screen, const systems::collector::item& item, const settings::esp::item::name& cfg, float& y_offset )
+	void item::add_name( zdraw::draw_list& draw_list, const math::vector2& screen, const systems::collector::item& item, const settings::esp::item::name& cfg, float& y_offset )
 	{
 		zdraw::push_font( g::render.fonts( ).pixel7_10 );
 
@@ -75,14 +75,14 @@ namespace features::esp {
 		const auto x = std::floorf( screen.x - text_w * 0.5f );
 		const auto y = std::floorf( screen.y + y_offset );
 
-		zdraw::text<zdraw::tstyles::outlined>( x, y, name, cfg.color );
+		draw_list.add_text( x, y, name, nullptr, cfg.color, zdraw::text_style::outlined );
 
 		zdraw::pop_font( );
 
 		y_offset += text_h - 5.5f;
 	}
 
-	void item::add_ammo( const math::vector2& screen, const systems::collector::item& item, const settings::esp::item::ammo& cfg, float& y_offset )
+	void item::add_ammo( zdraw::draw_list& draw_list, const math::vector2& screen, const systems::collector::item& item, const settings::esp::item::ammo& cfg, float& y_offset )
 	{
 		zdraw::push_font( g::render.fonts( ).pixel7_10 );
 
@@ -94,7 +94,7 @@ namespace features::esp {
 		const auto fraction = static_cast< float >( std::clamp( item.ammo, 0, item.max_ammo ) ) / item.max_ammo;
 		const auto color = fraction > 0.0f ? cfg.color : cfg.empty_color;
 
-		zdraw::text<zdraw::tstyles::outlined>( x, y, text, color );
+		draw_list.add_text( x, y, text, nullptr, color, zdraw::text_style::outlined );
 
 		zdraw::pop_font( );
 
