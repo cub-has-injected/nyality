@@ -20,8 +20,6 @@
 - **Delete Configs** – Easily remove saved configurations from your disk.
 
 ## Combat
-- **Penetration Crosshair** – A 3D crosshair projected onto surfaces indicating whether your weapon can penetrate a wall (**Green** = Penetrate, **Red** = Cannot Penetrate). Rendered as a quad with gradient shading and configurable per weapon group.
-- **Penetration Calculation (`penetration::can()`)** – Advanced wall penetration checks using BVH ray tracing, surface type analysis, and damage falloff calculations.
 - **Humanization** – Features designed to mimic human-like movement to bypass VAC Live detection. *Use with caution, as effectiveness may vary.*
 
 ## ESP
